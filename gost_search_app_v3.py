@@ -226,6 +226,137 @@ function showImage(src) {
 
     img.src = src;
 }
+<div id="miniGame" style="max-width:520px;margin:16px auto;padding:16px;border:1px solid #ddd;border-radius:12px;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <button id="mgStart">Start</button>
+    <button id="mgReset">Reset</button>
+    <div>Time: <b id="mgTime">30</b>s</div>
+    <div>Score: <b id="mgScore">0</b></div>
+    <div>Best: <b id="mgBest">0</b></div>
+  </div>
+
+  <div id="mgArena" style="position:relative;height:320px;margin-top:12px;border:1px solid #ccc;border-radius:12px;overflow:hidden;">
+    <div id="mgTarget" title="Click me!"
+      style="position:absolute;width:46px;height:46px;border-radius:999px;cursor:pointer;display:none;
+             background:radial-gradient(circle at 30% 30%, #fff, #0000 35%), #ff4d4d;">
+    </div>
+  </div>
+
+  <div id="mgHint" style="margin-top:10px;opacity:.8;">
+    Нажми <b>Start</b>, потом кликай по красной цели. Чем быстрее — тем лучше 😄
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const startBtn = $("mgStart");
+  const resetBtn = $("mgReset");
+  const arena = $("mgArena");
+  const target = $("mgTarget");
+  const timeEl = $("mgTime");
+  const scoreEl = $("mgScore");
+  const bestEl = $("mgBest");
+
+  const BEST_KEY = "miniGame_best_score_v1";
+
+  let score = 0;
+  let timeLeft = 30;
+  let timer = null;
+  let running = false;
+
+  function loadBest() {
+    const v = Number(localStorage.getItem(BEST_KEY) || "0");
+    bestEl.textContent = String(v);
+  }
+
+  function saveBestIfNeeded() {
+    const best = Number(localStorage.getItem(BEST_KEY) || "0");
+    if (score > best) {
+      localStorage.setItem(BEST_KEY, String(score));
+      bestEl.textContent = String(score);
+    }
+  }
+
+  function setTargetRandom() {
+    const pad = 8;
+    const r = arena.getBoundingClientRect();
+    const size = 46;
+    const x = Math.max(pad, Math.floor(Math.random() * (r.width - size - pad)));
+    const y = Math.max(pad, Math.floor(Math.random() * (r.height - size - pad)));
+    target.style.left = x + "px";
+    target.style.top = y + "px";
+  }
+
+  function showTarget() {
+    setTargetRandom();
+    target.style.display = "block";
+  }
+
+  function hideTarget() {
+    target.style.display = "none";
+  }
+
+  function tick() {
+    timeLeft -= 1;
+    timeEl.textContent = String(timeLeft);
+    if (timeLeft <= 0) stop();
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    score = 0;
+    timeLeft = 30;
+    scoreEl.textContent = "0";
+    timeEl.textContent = "30";
+    showTarget();
+    timer = setInterval(tick, 1000);
+  }
+
+  function stop() {
+    if (!running) return;
+    running = false;
+    clearInterval(timer);
+    timer = null;
+    hideTarget();
+    saveBestIfNeeded();
+  }
+
+  function reset() {
+    stop();
+    score = 0;
+    timeLeft = 30;
+    scoreEl.textContent = "0";
+    timeEl.textContent = "30";
+  }
+
+  target.addEventListener("click", (e) => {
+    if (!running) return;
+    score += 1;
+    scoreEl.textContent = String(score);
+    // небольшой “челлендж”: иногда цель меняет размер
+    const size = 34 + Math.floor(Math.random() * 22); // 34..55
+    target.style.width = size + "px";
+    target.style.height = size + "px";
+    setTargetRandom();
+    e.stopPropagation();
+  });
+
+  // промах — штраф (небольшой)
+  arena.addEventListener("click", () => {
+    if (!running) return;
+    score = Math.max(0, score - 1);
+    scoreEl.textContent = String(score);
+  });
+
+  startBtn.addEventListener("click", start);
+  resetBtn.addEventListener("click", reset);
+
+  loadBest();
+})();
+</script>
 
 function uploadImage(gost) {
     const input = document.createElement("input");
@@ -775,6 +906,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
